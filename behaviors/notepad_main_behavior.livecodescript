@@ -1,4 +1,4 @@
-﻿script "main_behavior"
+﻿script "notepad_main_behavior"
 //>GLOBALS
 global gNoteA, gSelectedNote
 
