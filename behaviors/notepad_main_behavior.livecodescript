@@ -299,7 +299,7 @@ end hiliteNote
 
 
 command refreshNotesList
-     local tNotesA
+     local tNotesA, tSidebarNotes
      
      put getNotes() into tNotesA
      
@@ -310,6 +310,12 @@ command refreshNotesList
           set the vis of widget "save" of grp "header" of stack "notepad" to false
           set the vScrollbar of grp "sidebar" of stack "notepad" to false
      else
+          put the childControlNames of grp "sidebar" into tSidebarNotes
+          if tSidebarNotes is empty then
+               repeat for each key xNote in tNotesA
+                    addNoteToSidebar xNote, tNotesA[xNote]["title"], tNotesA[xNote]["timestamp"]
+               end repeat
+          end if
           redrawSidebar
           set the vis of grp "current note" of stack "notepad" to true
           set the vis of widget "delete" of grp "header" of stack "notepad" to true
