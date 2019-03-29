@@ -51,13 +51,19 @@ command cs_postMaster_mouseUp
      if tOwner = "header" then
           switch the short name of the target
                case "add"
+                    if gSelectedNote is not empty then
+                         updateNote
+                    end if
                     createNote
                     redrawSidebar
                     break
                     
                case "delete"
-                    deleteNote
-                    redrawSidebar
+                    answer "Do you want to delete the current note?" with "Yes" or "No"
+                    if it = "Yes" then
+                         deleteNote
+                         redrawSidebar
+                    end if
                     break
                     
                case "save"
@@ -67,6 +73,8 @@ command cs_postMaster_mouseUp
           end switch
      else
           if the short name of the owner of the owner of the target = "sidebar" then
+               updateNote
+               redrawSidebar
                put tOwner into gSelectedNote
                editNote gSelectedNote
                lock screen
@@ -197,18 +205,30 @@ command deleteNote
      
      //DELETE NOTE FROM SIDEBAR
      delete grp tRecordID of grp "sidebar" of stack "notepad"
+     if tRecordID = gSelectedNote then
+          put empty into gNoteA
+          put empty into gSelectedNote
+     end if
 end deleteNote
 
 
 command addNoteToSidebar pRecordID, pTitle, pTimestamp
-     local tNewGroup, tTime, tPreview
+     local tNewGroup, tNotesA, tTime, tDate, tPreview
      
      copy grp "note template" of stack "notepad" to grp "sidebar" of stack "notepad"
      put it into tNewGroup
      
-     put char 1 to -4 of pTimestamp into tTime
-     convert tTime to short system time
-     put pTitle && tTime into tPreview
+     put getNotes() into tNotesA
+     put tNotesA[pRecordID]["cdb"]["cdbDateModified"] into tDate
+     convert tDate to short date
+     if tDate = date() then
+          put char 1 to -4 of pTimestamp into tTime
+          convert tTime to short system time
+          put pTitle && tTime into tPreview
+     else
+          put pTitle && tDate into tPreview
+     end if
+ 
      set the name of tNewGroup to pRecordID
      put pRecordID into tNewGroup
      put tPreview into fld "note description" of grp tNewGroup of stack "notepad"
@@ -227,17 +247,28 @@ end updateNoteInSidebar
 
 
 command redrawSidebar
-     local tNotesA, tNotes, tRecordID, tPreviousLine, tTime, tBottom
+     local tNotesA, tNotes, tOldNotes, tRecordID, tPreviousLine, tTime, tDate, tBottom
      
      put getNotes() into tNotesA
      
      if tNotesA <> empty then
           repeat for each key xNote in tNotesA
-               put xNote && tNotesA[xNote]["timestamp"] & lf after tNotes
+               local 
+               put tNotesA[xNote]["cdb"]["cdbDateModified"] into tDate
+               convert tDate to short date
+               if tDate = date() then
+                    put xNote && tNotesA[xNote]["timestamp"] && "time" & lf after tNotes
+               else
+                    put xNote && tNotesA[xNote]["cdb"]["cdbDateModified"] && "date" & lf after tOldNotes
+               end if
           end repeat
           set the itemDel to " "
           sort lines of tNotes descending numeric by item 2 of each
+          if char -1 of tOldNotes = lf then delete char -1 of tOldNotes
+          sort lines of tOldNotes descending numeric by item 2 of each
+          put tOldNotes after tNotes
           put item 1 of line 1 of tNotes into gSelectedNote
+          put tNotesA[gSelectedNote] into gNoteA[gSelectedNote]
           
           lock screen
           repeat with xLine = 1 to the number of lines in tNotes
@@ -251,9 +282,15 @@ command redrawSidebar
                     set the left of grp tRecordID of grp "sidebar" of stack "notepad" to the left of grp tPreviousLine of grp "sidebar" of stack "notepad"
                end if
                
-               put char 1 to -4 of tNotesA[tRecordID]["timestamp"] into tTime
-               convert tTime to short system time
-               put tNotesA[tRecordID]["title"] && tTime into fld "note description" of grp tRecordID of grp "sidebar" of stack "notepad"
+               if item 3 of line xLine of tNotes = "time" then
+                    put char 1 to -4 of tNotesA[tRecordID]["timestamp"] into tTime
+                    convert tTime to short system time
+                    put tNotesA[tRecordID]["title"] && tTime into fld "note description" of grp tRecordID of grp "sidebar" of stack "notepad"
+               else
+                    put tNotesA[tRecordID]["cdb"]["cdbDateModified"] into tDate
+                    convert tDate to short date
+                    put tNotesA[tRecordID]["title"] && tDate into fld "note description" of grp tRecordID of grp "sidebar" of stack "notepad"
+               end if
           end repeat
           
           hiliteNote
@@ -274,6 +311,8 @@ command redrawSidebar
           unlock screen
      else
           lock screen
+          put empty into gNoteA
+          put empty into gSelectedNote
           put empty into fld "note title field" of grp "current note" of stack "notepad"
           put empty into fld "note data field" of grp "current note" of stack "notepad"
           set the vis of grp "current note" of stack "notepad" to false
