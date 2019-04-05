@@ -328,7 +328,7 @@ end redrawSidebar
 command hiliteNote
      local tControls
 
-     put the childControlNames of grp "sidebar" into tControls
+     put the childControlNames of grp "sidebar" of stack "notepad" into tControls
      repeat for each line xLine in tControls
           set the blendLevel of grc "note backdrop" of grp xLine of grp "sidebar" of stack "notepad" to "80"
      end repeat
@@ -349,7 +349,7 @@ command refreshNotesList
           set the vis of widget "save" of grp "header" of stack "notepad" to false
           set the vScrollbar of grp "sidebar" of stack "notepad" to false
      else
-          put the childControlNames of grp "sidebar" into tSidebarNotes
+          put the childControlNames of grp "sidebar" of stack "notepad" into tSidebarNotes
           if tSidebarNotes is empty then
                repeat for each key xNote in tNotesA
                     addNoteToSidebar xNote, tNotesA[xNote]["title"], tNotesA[xNote]["timestamp"]
